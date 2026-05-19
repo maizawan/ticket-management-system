@@ -8,9 +8,11 @@
 
         <h2>Tickets</h2>
 
-        <a href="/tickets/create" class="btn btn-primary">
-            + Create Ticket
-        </a>
+        @if(auth()->check() && auth()->user()->role !== 'admin')
+    <a href="{{ url('/tickets/create') }}" class="btn btn-primary">
+        + Create Ticket
+    </a>
+@endif
 
     </div>
 
@@ -53,10 +55,17 @@
 
                     @if($ticket->status === 'open')
 
-                        <a href="/tickets/{{ $ticket->id }}/edit"
-                           class="btn btn-sm btn-warning">
-                            Edit
-                        </a>
+                       @if(auth()->check() 
+    && auth()->user()->role !== 'admin' 
+    && $ticket->status === 'open' 
+    && $ticket->user_id === auth()->id())
+
+    <a href="/tickets/{{ $ticket->id }}/edit"
+       class="btn btn-sm btn-warning">
+        Edit
+    </a>
+
+@endif
 
                         <form action="/tickets/{{ $ticket->id }}"
                               method="POST"

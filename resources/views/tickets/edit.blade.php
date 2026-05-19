@@ -24,9 +24,9 @@
                 <option value="high" {{ $ticket->priority=='high'?'selected':'' }}>High</option>
             </select>
 
-            <button class="bg-green-600 text-white px-4 py-2 mt-3">
-                Update
-            </button>
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 mt-3">
+    Update
+</button>
 
         </form>
 

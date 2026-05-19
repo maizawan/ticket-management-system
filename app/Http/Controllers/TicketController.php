@@ -3,54 +3,72 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
-use Illuminate\Http\Request;
 use App\Models\TicketComment;
+use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
-    // 🔐 GET USER SAFELY
     private function user()
     {
         return auth()->user();
     }
 
-   
-    public function index()
+    private function ensureUser()
     {
         $user = $this->user();
 
         if (!$user) {
-            return redirect('/login');
+            abort(redirect('/login'));
         }
 
-        if ($user->role === 'admin') {
-            $tickets = Ticket::latest()->get();
-        } else {
-            $tickets = Ticket::where('user_id', $user->id)->latest()->get();
-        }
+        return $user;
+    }
+
+    private function canEditTicket($user, $ticket)
+    {
+        return $ticket->user_id === $user->id
+            && strtolower($ticket->status ?? '') === 'open';
+    }
+
+    private function isAdmin($user)
+    {
+        return $user->role === 'admin';
+    }
+
+    public function index()
+    {
+        $user = $this->ensureUser();
+
+        $tickets = $this->isAdmin($user)
+            ? Ticket::latest()->get()
+            : Ticket::where('user_id', $user->id)->latest()->get();
 
         return view('tickets.index', compact('tickets'));
     }
 
-    
     public function create()
     {
+        $user = $this->ensureUser();
+
+        if ($this->isAdmin($user)) {
+            return redirect('/tickets')->with('error', 'Admin cannot create tickets');
+        }
+
         return view('tickets.create');
     }
 
-    
     public function store(Request $request)
     {
-        $user = $this->user();
+        $user = $this->ensureUser();
 
-        if (!$user) {
-            return redirect('/login');
+        if ($this->isAdmin($user)) {
+            return redirect('/tickets')->with('error', 'Admin cannot create tickets');
         }
 
         $request->validate([
-            'title' => 'required',
+            'title' => 'required|max:150',
             'description' => 'required',
-            'priority' => 'required'
+            'priority' => 'required|in:low,medium,high'
         ]);
 
         Ticket::create([
@@ -64,50 +82,41 @@ class TicketController extends Controller
         return redirect('/tickets')->with('success', 'Ticket created successfully');
     }
 
-    
     public function show(Ticket $ticket)
     {
-        $user = $this->user();
+        $user = $this->ensureUser();
 
-        if (!$user) {
-            return redirect('/login');
+        if ($this->isAdmin($user) || $ticket->user_id === $user->id) {
+            return view('tickets.show', compact('ticket'));
         }
 
-        if ($user->role !== 'admin' && $ticket->user_id !== $user->id) {
-            abort(403);
-        }
-
-        return view('tickets.show', compact('ticket'));
+        abort(403);
     }
 
-    
     public function edit(Ticket $ticket)
     {
-        $user = $this->user();
+        $user = $this->ensureUser();
 
-        if (!$user) {
-            return redirect('/login');
-        }
-
-        if ($ticket->user_id !== $user->id || $ticket->status !== 'open') {
-            abort(403);
+        if (!$this->canEditTicket($user, $ticket)) {
+            abort(403, 'You cannot edit this ticket');
         }
 
         return view('tickets.edit', compact('ticket'));
     }
 
-   
     public function update(Request $request, Ticket $ticket)
     {
-        $user = $this->user();
+        $user = $this->ensureUser();
 
-        if (!$user) {
-            return redirect('/login');
+        if (!$this->canEditTicket($user, $ticket)) {
+            abort(403, 'You cannot update this ticket');
         }
 
-        if ($ticket->user_id !== $user->id || $ticket->status !== 'open') {
-            abort(403);
-        }
+        $request->validate([
+            'title' => 'required|max:150',
+            'description' => 'required',
+            'priority' => 'required|in:low,medium,high'
+        ]);
 
         $ticket->update([
             'title' => $request->title,
@@ -115,16 +124,12 @@ class TicketController extends Controller
             'priority' => $request->priority
         ]);
 
-        return redirect('/tickets')->with('success', 'Ticket updated');
+        return redirect('/tickets')->with('success', 'Ticket updated successfully');
     }
 
     public function destroy(Ticket $ticket)
     {
-        $user = $this->user();
-
-        if (!$user) {
-            return redirect('/login');
-        }
+        $user = $this->ensureUser();
 
         if ($ticket->user_id !== $user->id) {
             abort(403);
@@ -135,14 +140,9 @@ class TicketController extends Controller
         return redirect('/tickets')->with('success', 'Ticket deleted');
     }
 
-    // Add Comment
     public function addComment(Request $request, Ticket $ticket)
     {
-        $user = $this->user();
-
-        if (!$user) {
-            return redirect('/login');
-        }
+        $user = $this->ensureUser();
 
         $request->validate([
             'comment' => 'required'
@@ -157,12 +157,11 @@ class TicketController extends Controller
         return back()->with('success', 'Comment added successfully');
     }
 
-    
     public function updateStatus(Request $request, Ticket $ticket)
     {
-        $user = $this->user();
+        $user = $this->ensureUser();
 
-        if (!$user || $user->role !== 'admin') {
+        if (!$this->isAdmin($user)) {
             abort(403);
         }
 
@@ -174,6 +173,6 @@ class TicketController extends Controller
             'status' => $request->status
         ]);
 
-        return back()->with('success', 'Ticket status updated successfully');
+        return back()->with('success', 'Status updated successfully');
     }
 }
