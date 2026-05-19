@@ -4,8 +4,32 @@
 
 <div class="container">
 
-    <h2 class="mb-4 fw-bold">Dashboard</h2>
+    {{-- 🔥 HEADER --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
 
+        <h2 class="fw-bold">Dashboard</h2>
+
+        {{-- 👑 ROLE BADGE --}}
+        @if(auth()->user()->role === 'admin')
+            <span class="badge bg-danger fs-6">ADMIN</span>
+        @else
+            <span class="badge bg-success fs-6">USER</span>
+        @endif
+
+    </div>
+
+    {{-- 👤 WELCOME MESSAGE --}}
+    <div class="alert alert-info">
+        Welcome <b>{{ auth()->user()->name }}</b>,
+
+        @if(auth()->user()->role === 'admin')
+            you have full access to all tickets.
+        @else
+            you can manage only your tickets.
+        @endif
+    </div>
+
+    {{-- 📊 CARDS --}}
     <div class="row g-4">
 
         <!-- Total Tickets -->
