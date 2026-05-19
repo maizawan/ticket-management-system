@@ -57,3 +57,128 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+
+
+
+
+
+
+Support Ticket Management System (Laravel)
+
+This is a small Support Ticket Management System built using Laravel.  
+The project demonstrates authentication, role-based access control, ticket management, and proper use of Laravel best practices including controllers, policies, and Eloquent relationships.
+
+
+
+ Project Overview
+
+This system allows users to create and manage support tickets.  
+There are two roles in the system:
+
+ User
+ Register / Login
+ Create tickets
+ View only their own tickets
+-Edit their own OPEN tickets
+ Delete their own tickets
+
+ Admin
+View all tickets Update ticket status (Open / In Progress / Closed)
+ Add internal comments on tickets
+
+
+
+Authentication
+
+Authentication is implemented using:
+
+ Laravel Breeze (or Laravel default auth)
+
+Users can:
+ Register
+ Login
+ Logout
+
+Roles & Permissions
+
+Two roles are defined:
+
+ Admin
+View all tickets
+ Change ticket status
+ Add comments
+
+User
+ Create ticket
+ View own tickets only
+ Edit own open tickets only
+ Delete own tickets
+
+Access control is handled using:
+ Middleware
+ Policies
+
+
+
+Ticket Module
+
+ Ticket Fields
+
+| Field       | Type                  
+
+| Title       | String (Max 150)     
+| Description | Text                 
+| Priority    | Enum (Low, Medium, High) 
+| Status      | Enum (Open, In Progress, Closed) 
+
+
+
+Database Structure
+
+The project uses the following tables:
+
+ users
+ tickets
+ ticket_comments
+
+ Relationships:
+ User has many Tickets
+ Ticket belongs to User
+ Ticket has many Comments
+ Comment belongs to Ticket
+
+Eloquent relationships are properly implemented.
+
+Validation Rules
+
+| Field       | Rule                          
+
+| Title       | Required, Max 150 characters 
+| Description | Required                     
+| Priority    | Required                     
+| Status      | Only Admin can update       
+
+Validation is handled using Form Request classes.
+
+
+ Technical Implementation
+
+This project follows Laravel best practices:
+
+ Resource Controllers used
+ Form Request Validation implemented
+ Eloquent Relationships used
+ Middleware & Policies used for authorization
+ Clean and readable code structure
+ Proper naming conventions followed
+
+
+
+ Installation & Setup (CMD Commands)
+
+ Clone the project
+```bash
+git clone https://github.com/your-username/support-ticket-system.git
+cd support-ticket-system
