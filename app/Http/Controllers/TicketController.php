@@ -8,36 +8,76 @@ use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Get Auth User
+    |--------------------------------------------------------------------------
+    */
+
     private function user()
     {
         return auth()->user();
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ensure User Logged In
+    |--------------------------------------------------------------------------
+    */
 
     private function ensureUser()
     {
         $user = $this->user();
 
         if (!$user) {
-            abort(redirect('/login'));
+            return redirect('/login');
         }
 
         return $user;
     }
 
-    private function canEditTicket($user, $ticket)
-    {
-        return $ticket->user_id === $user->id
-            && strtolower($ticket->status ?? '') === 'open';
-    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Admin
+    |--------------------------------------------------------------------------
+    */
 
     private function isAdmin($user)
     {
         return $user->role === 'admin';
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Can Edit Ticket
+    |--------------------------------------------------------------------------
+    */
+
+    private function canEditTicket($user, $ticket)
+    {
+        return (
+            $ticket->user_id == $user->id &&
+            strtolower(trim($ticket->status ?? '')) == 'open'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ticket Listing
+    |--------------------------------------------------------------------------
+    */
+
     public function index()
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
+
+        if (!$user) {
+            return redirect('/login');
+        }
 
         $tickets = $this->isAdmin($user)
             ? Ticket::latest()->get()
@@ -46,23 +86,49 @@ class TicketController extends Controller
         return view('tickets.index', compact('tickets'));
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Ticket Page
+    |--------------------------------------------------------------------------
+    */
+
     public function create()
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
 
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        // ❌ Admin cannot create ticket
         if ($this->isAdmin($user)) {
-            return redirect('/tickets')->with('error', 'Admin cannot create tickets');
+            return redirect('/tickets')
+                ->with('error', 'Admin cannot create tickets');
         }
 
         return view('tickets.create');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store Ticket
+    |--------------------------------------------------------------------------
+    */
+
     public function store(Request $request)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
 
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        // ❌ Admin cannot create ticket
         if ($this->isAdmin($user)) {
-            return redirect('/tickets')->with('error', 'Admin cannot create tickets');
+            return redirect('/tickets')
+                ->with('error', 'Admin cannot create tickets');
         }
 
         $request->validate([
@@ -79,37 +145,79 @@ class TicketController extends Controller
             'status' => 'open'
         ]);
 
-        return redirect('/tickets')->with('success', 'Ticket created successfully');
+        return redirect('/tickets')
+            ->with('success', 'Ticket created successfully');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Show Ticket
+    |--------------------------------------------------------------------------
+    */
 
     public function show(Ticket $ticket)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
 
-        if ($this->isAdmin($user) || $ticket->user_id === $user->id) {
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        if (
+            $this->isAdmin($user) ||
+            $ticket->user_id == $user->id
+        ) {
             return view('tickets.show', compact('ticket'));
         }
 
         abort(403);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Edit Ticket
+    |--------------------------------------------------------------------------
+    */
+
     public function edit(Ticket $ticket)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
 
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        // ❌ Only user can edit own OPEN ticket
         if (!$this->canEditTicket($user, $ticket)) {
-            abort(403, 'You cannot edit this ticket');
+
+            return redirect('/tickets')
+                ->with('error', 'You cannot edit this ticket');
         }
 
         return view('tickets.edit', compact('ticket'));
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Ticket
+    |--------------------------------------------------------------------------
+    */
+
     public function update(Request $request, Ticket $ticket)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
+
+        if (!$user) {
+            return redirect('/login');
+        }
 
         if (!$this->canEditTicket($user, $ticket)) {
-            abort(403, 'You cannot update this ticket');
+
+            return redirect('/tickets')
+                ->with('error', 'You cannot update this ticket');
         }
 
         $request->validate([
@@ -124,25 +232,50 @@ class TicketController extends Controller
             'priority' => $request->priority
         ]);
 
-        return redirect('/tickets')->with('success', 'Ticket updated successfully');
+        return redirect('/tickets')
+            ->with('success', 'Ticket updated successfully');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Ticket
+    |--------------------------------------------------------------------------
+    */
 
     public function destroy(Ticket $ticket)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
 
-        if ($ticket->user_id !== $user->id) {
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        // ❌ Only owner can delete
+        if ($ticket->user_id != $user->id) {
             abort(403);
         }
 
         $ticket->delete();
 
-        return redirect('/tickets')->with('success', 'Ticket deleted');
+        return redirect('/tickets')
+            ->with('success', 'Ticket deleted successfully');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Add Comment
+    |--------------------------------------------------------------------------
+    */
 
     public function addComment(Request $request, Ticket $ticket)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
+
+        if (!$user) {
+            return redirect('/login');
+        }
 
         $request->validate([
             'comment' => 'required'
@@ -154,13 +287,26 @@ class TicketController extends Controller
             'comment' => $request->comment
         ]);
 
-        return back()->with('success', 'Comment added successfully');
+        return back()
+            ->with('success', 'Comment added successfully');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Ticket Status (Admin Only)
+    |--------------------------------------------------------------------------
+    */
 
     public function updateStatus(Request $request, Ticket $ticket)
     {
-        $user = $this->ensureUser();
+        $user = $this->user();
 
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        // ❌ Only admin can update status
         if (!$this->isAdmin($user)) {
             abort(403);
         }
@@ -173,6 +319,7 @@ class TicketController extends Controller
             'status' => $request->status
         ]);
 
-        return back()->with('success', 'Status updated successfully');
+        return back()
+            ->with('success', 'Status updated successfully');
     }
 }
