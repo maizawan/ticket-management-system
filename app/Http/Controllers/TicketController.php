@@ -8,11 +8,7 @@ use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Get Auth User
-    |--------------------------------------------------------------------------
-    */
+    
 
     private function user()
     {
@@ -20,11 +16,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ensure User Logged In
-    |--------------------------------------------------------------------------
-    */
+  
 
     private function ensureUser()
     {
@@ -38,11 +30,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Check Admin
-    |--------------------------------------------------------------------------
-    */
+   
 
     private function isAdmin($user)
     {
@@ -50,11 +38,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Can Edit Ticket
-    |--------------------------------------------------------------------------
-    */
+   
 
     private function canEditTicket($user, $ticket)
     {
@@ -65,11 +49,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ticket Listing
-    |--------------------------------------------------------------------------
-    */
+    
 
     public function index()
     {
@@ -87,12 +67,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Create Ticket Page
-    |--------------------------------------------------------------------------
-    */
-
+  
     public function create()
     {
         $user = $this->user();
@@ -111,11 +86,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Store Ticket
-    |--------------------------------------------------------------------------
-    */
+  
 
     public function store(Request $request)
     {
@@ -125,7 +96,7 @@ class TicketController extends Controller
             return redirect('/login');
         }
 
-        // ❌ Admin cannot create ticket
+        
         if ($this->isAdmin($user)) {
             return redirect('/tickets')
                 ->with('error', 'Admin cannot create tickets');
@@ -150,12 +121,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Show Ticket
-    |--------------------------------------------------------------------------
-    */
-
+   
     public function show(Ticket $ticket)
     {
         $user = $this->user();
@@ -175,11 +141,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Edit Ticket
-    |--------------------------------------------------------------------------
-    */
+    
 
     public function edit(Ticket $ticket)
     {
@@ -189,7 +151,7 @@ class TicketController extends Controller
             return redirect('/login');
         }
 
-        // ❌ Only user can edit own OPEN ticket
+        
         if (!$this->canEditTicket($user, $ticket)) {
 
             return redirect('/tickets')
@@ -200,11 +162,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Update Ticket
-    |--------------------------------------------------------------------------
-    */
+   
 
     public function update(Request $request, Ticket $ticket)
     {
@@ -237,11 +195,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Delete Ticket
-    |--------------------------------------------------------------------------
-    */
+  
 
     public function destroy(Ticket $ticket)
     {
@@ -251,7 +205,7 @@ class TicketController extends Controller
             return redirect('/login');
         }
 
-        // ❌ Only owner can delete
+        
         if ($ticket->user_id != $user->id) {
             abort(403);
         }
@@ -263,11 +217,6 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Add Comment
-    |--------------------------------------------------------------------------
-    */
 
     public function addComment(Request $request, Ticket $ticket)
     {
@@ -292,11 +241,7 @@ class TicketController extends Controller
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Update Ticket Status (Admin Only)
-    |--------------------------------------------------------------------------
-    */
+   
 
     public function updateStatus(Request $request, Ticket $ticket)
     {
@@ -306,7 +251,7 @@ class TicketController extends Controller
             return redirect('/login');
         }
 
-        // ❌ Only admin can update status
+       
         if (!$this->isAdmin($user)) {
             abort(403);
         }
